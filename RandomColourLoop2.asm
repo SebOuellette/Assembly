@@ -1,3 +1,5 @@
+;; 6502 - Colour looper program
+
 Init:
 LDA #$00      ; Initialize least significant byte
 STA $00
@@ -13,7 +15,7 @@ STA ($00, X)  ; Store colour into the GPU address defined at zero-page 0
 INC $00       ; Increment pointer address
 
 CPX $00       ; Check if pointer lower-byte is zero
-BNE Program   ; If equal, continue, otherwise continue;
+BNE Program   ; If equal, continue, otherwise go back to Program
 
 ;; Roll over
 INC $01       ; Increment the pointer's higher-byte
