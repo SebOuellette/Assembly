@@ -14,8 +14,7 @@ Program:
 STA ($00, X)  ; Store colour into the GPU address defined at zero-page 0
 INC $00       ; Increment pointer address
 
-CPX $00       ; Check if pointer lower-byte is zero
-BNE Program   ; If equal, continue, otherwise go back to Program
+BNE Program   ; If zero, roll over, otherwise restart loop
 
 ;; Roll over
 INC $01       ; Increment the pointer's higher-byte
