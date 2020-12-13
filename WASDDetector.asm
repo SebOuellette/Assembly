@@ -34,7 +34,6 @@ JMP Loop     ; Listen for another key
 ;; Functions
 GoingUp:
 LDA #$2
-STA ($01), Y
 JMP Increment     ; Increment the pointer properly
 
 GoingLeft:
