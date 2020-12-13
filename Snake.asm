@@ -36,15 +36,14 @@ JMP Loop     ; Listen for another key
 
 ;; Functions 
 GoingUp:
-PHA
 LDA $01      ; Load the lower byte
-CLC
-SBC #$1f     ; Move up one unit on the screen
+SEC
+SBC #$20     ; Move up one unit on the screen
 STA $01      ; Store new position
 BCS Wrap1    ; Need to decrement the higher byte
-Wrap1:
 JSR DecrementHigher
-PLA
+Wrap1:
+LDA $fe
 STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
@@ -79,4 +78,5 @@ BNE ReturnDec  ; If not, continue with loop
 LDY #5
 STY $02      ; If so, reset the higher byte back to immediate 5
 ReturnDec:
+LDY #0
 RTS
