@@ -17,12 +17,24 @@ AND #$3f     ; Only worry about the 0011 1110 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
-INC $4       ; If so, increment the second loop delay
-;; Loop counter is temporary, to view the framerate
 
 LDA $ff      ; Load the last pressed key into A
+CMP #$77     ; Up
+BEQ validKey
+CMP #$61     ; Left
+BEQ validKey
+CMP #$73     ; Down
+BEQ validKey
+CMP #$64     ; Right
+BEQ validKey
+JMP invalidKey
+
+validKey:
+STA 0
+invalidKey:
 
 ;; Check the game controls
+LDA 0
 CMP #$77     ; Up (Idk how variables work yet)
 BEQ GoingUp
 
@@ -57,8 +69,10 @@ GoingLeft:
 LDA #$0
 STA ($01), Y ; Clear old position
 LDA $01      ; Load the lower byte into A
+PHA
 AND #$3f     ; Only worry about the 0011 1111 bits
 CMP #0       ; Check if the box is on the left
+PLA
 BNE Wrap2    ; If not, continue
 ADC #$1f     ; If so, move to the right side of the screen
 STA $1
@@ -86,8 +100,10 @@ GoingRight:
 LDA #$0
 STA ($01), Y ; Clear old position
 LDA $01      ; Load the lower byte into A
+PHA
 AND #$3f     ; Only worry about the 0011 1111 bits
 CMP #$1f     ; Check if the box is on the right
+PLA
 BNE Wrap4    ; If not, continue
 SEC
 SBC #$1f     ; If so, move to the left side of the screen
@@ -105,8 +121,8 @@ INC $02      ; Decrement highest
 LDY #6
 CPY $02      ; Check if the higher byte is immediate 6
 BNE ReturnDec  ; If not, continue with loop
-LDY #1
-STY $02      ; If so, reset the higher byte back to immediate 1
+LDY #2
+STY $02      ; If so, reset the higher byte back to immediate 2
 ReturnDec:
 LDY #0
 RTS
