@@ -1,5 +1,7 @@
 ;; 6502 Snake game
 
+Init:
+JMP Start  ; Skip the variables
 ;; Memory addresses
 ;define prevKey   $00 ; previous valid key pressed
 ;define pointerL  $01 ; Low-byte for the snake head's pointer
@@ -9,12 +11,23 @@
 ;define oPointerL $05 ; Low-byte for the old snake head's pointer
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
 ;define tailMem   $1000 ; The starting memory address for the tail
-;define tailLen   $07 ; The length of the tail
+;define tailLen   $07 ; Double the length of the tail
 
+Start:
+;; Create pointer
 LDA #$f0   ; Set the lower byte
 STA $01
 LDA #$03   ; Set the higher byte
 STA $02
+;; Create tail pointer
+LDA #$00
+STA $05
+LDA #$10
+STA $06
+;; Create tail
+LDY #3     ; Length of tail to add
+JSR addTail
+
 LDX #6     ; Set X to immediate 6
 LDY #0     ; Set Y to immediate 0
 LDA #$3      ; Make the box cyan
@@ -187,4 +200,27 @@ RTS
 clearOld:
 LDA #0
 STA ($05), Y ; Clear old position
+RTS
+
+addTail:
+PHA          ; Push A to the stack
+TYA          ; Transfer Y to A
+Decrement:
+BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
+LDY $7       ; Load the tail length into Y
+INC $7       ; Increment the tail length
+PHA
+LDA $01
+STA ($5), Y  ; Store the current low-byte into the tail memory address
+LDY $7       ; Load the new tail length/index into Y
+INC $7       ; Increment the tail length again
+LDA $02
+STA ($5), Y  ; Store the current high-byte into the tail memory address
+PLA
+SEC
+SBC #1       ; Decrement A by 1
+JMP Decrement
+continueTail:
+LDY #0       ; Put immediate 0 back into Y
+PLA          ; Pull A from stack
 RTS
