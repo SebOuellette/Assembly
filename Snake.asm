@@ -66,6 +66,12 @@ PLA
 STA 0        ; If the key is W/A/S/D, store it to ZP-0
 invalidKey:
 
+;; Store the old player address
+LDA 1        ; Load the old low-byte
+STA 5        ; Copy to new memory address
+LDA 2        ; Load the old high-byte
+STA 6        ; Copy to new memory address
+
 ;; Check the game controls
 LDA 0
 CMP #$77     ; Up (Idk how variables work yet)
@@ -85,7 +91,6 @@ JMP Loop     ; Listen for another key
 
 ;; Functions 
 GoingUp:
-JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 SEC
 SBC #$20     ; Move up one unit on the screen
@@ -95,6 +100,7 @@ JSR DecrementHigher
 Wrap1:
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
+JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingLeft:
@@ -113,6 +119,7 @@ LDA $4
 DEC $01      ; Move box left
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
+JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingDown:
@@ -126,6 +133,7 @@ JSR IncrementHigher
 Wrap3:
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
+JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingRight:
@@ -145,6 +153,7 @@ LDA $4
 INC $01      ; Move box right
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
+JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 
@@ -173,5 +182,5 @@ RTS
 
 clearOld:
 LDA #0
-STA ($01), Y ; Clear old position
+STA ($05), Y ; Clear old position
 RTS
