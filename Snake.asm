@@ -28,7 +28,6 @@ STA $06
 LDY #3     ; Length of tail to add
 JSR addTail
 
-LDX #6     ; Set X to immediate 6
 LDY #0     ; Set Y to immediate 0
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
@@ -88,6 +87,7 @@ JMP invalidKey
 validKey:
 PLA
 STA 0        ; If the key is W/A/S/D, store it to ZP-0
+JSR updateTail
 invalidKey:
 
 ;; Store the old player address
@@ -228,14 +228,28 @@ RTS
 updateTail:
 PHA
 LDA $7       ; Load the tail length into A
+SEC          ; Set the carry bit
+SBC #2       ; Subtract 2 from tail length
+
 nextTailPiece:
 SEC          ; Set the carry bit
 SBC #2       ; Subtract 2 from tail length
-BEQ tailDone
-PHA          ; Store new tail length in stack
+TAY          ; Store the tail count into Y
 
-PLA
+BEQ tailDone ; Check if the tail count is zero, if so, skip to tailDone
+LDA ($5), Y
+INY          ; Increment Y twice to find new high-byte
+INY          ; ^
+STA ($5), Y
+DEY          ; Decrement Y, load low-byte
+LDA ($5), Y
+INY          ; Increment Y twice to find new low-byte
+INY          ; ^
+STA ($5), Y
+
+JMP nextTailPiece
+;; TODO:
+;;  Load head position to first tail position
 tailDone:
-;; Load head position to first tail position
 PLA
 RTS
