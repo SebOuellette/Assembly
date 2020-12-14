@@ -15,7 +15,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop delay
 LDA $3       ; Load the delay counter into A
-AND #$1f     ; Only worry about the 0011 1111 bits
+AND #$3f     ; Only worry about the 0011 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
