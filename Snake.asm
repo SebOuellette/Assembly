@@ -224,3 +224,18 @@ continueTail:
 LDY #0       ; Put immediate 0 back into Y
 PLA          ; Pull A from stack
 RTS
+
+updateTail:
+PHA
+LDA $7       ; Load the tail length into A
+nextTailPiece:
+SEC          ; Set the carry bit
+SBC #2       ; Subtract 2 from tail length
+BEQ tailDone
+PHA          ; Store new tail length in stack
+
+PLA
+tailDone:
+;; Load head position to first tail position
+PLA
+RTS
