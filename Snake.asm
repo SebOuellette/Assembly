@@ -1,11 +1,13 @@
 ;; 6502 Snake game
 
-LDA #0     ; Set the lower byte
+LDA #$f0   ; Set the lower byte
 STA $01
-LDA #2     ; Set the higher byte
+LDA #$03   ; Set the higher byte
 STA $02
-LDX #6     ; Set X to immediate 0
-
+LDX #6     ; Set X to immediate 6
+LDY #0     ; Set Y to immediate 0
+LDA #$3      ; Make the box cyan
+STA ($01), Y ; Store the colour into the GPU
 
 Loop:
 LDY #0       ; Reset Y back to 0
@@ -13,7 +15,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop delay
 LDA $3       ; Load the delay counter into A
-AND #$3f     ; Only worry about the 0011 1110 bits
+AND #$1f     ; Only worry about the 0011 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -30,7 +32,7 @@ BEQ validKey
 JMP invalidKey
 
 validKey:
-STA 0
+STA 0        ; If the key is W/A/S/D, store it to ZP-0
 invalidKey:
 
 ;; Check the game controls
@@ -70,13 +72,15 @@ LDA #$0
 STA ($01), Y ; Clear old position
 LDA $01      ; Load the lower byte into A
 PHA
-AND #$3f     ; Only worry about the 0011 1111 bits
+AND #$1f     ; Only worry about the 0011 1111 bits
+STA $4
 CMP #0       ; Check if the box is on the left
-PLA
 BNE Wrap2    ; If not, continue
+PLA
 ADC #$1f     ; If so, move to the right side of the screen
 STA $1
 Wrap2:
+PLA
 DEC $01      ; Move box left
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
@@ -101,14 +105,15 @@ LDA #$0
 STA ($01), Y ; Clear old position
 LDA $01      ; Load the lower byte into A
 PHA
-AND #$3f     ; Only worry about the 0011 1111 bits
+AND #$1f     ; Only worry about the 0011 1111 bits
 CMP #$1f     ; Check if the box is on the right
-PLA
 BNE Wrap4    ; If not, continue
+PLA
 SEC
 SBC #$1f     ; If so, move to the left side of the screen
 STA $1
 Wrap4:
+PLA
 INC $01      ; Move box right
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
