@@ -20,18 +20,49 @@ STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
 
+;;             Check if the key is W/A/S/D
 LDA $ff      ; Load the last pressed key into A
+
 CMP #$77     ; Up
-BEQ validKey
+BNE upEnd
+PHA
+LDA $00
+CMP #$73
+BNE validKey 
+PLA
+upEnd:
+
 CMP #$61     ; Left
-BEQ validKey
+BNE leftEnd
+PHA
+LDA $00
+CMP #$64
+BNE validKey
+PLA
+leftEnd:
+
 CMP #$73     ; Down
-BEQ validKey
+BNE downEnd
+PHA
+LDA $00
+CMP #$77
+BNE validKey
+PLA
+downEnd:
+
 CMP #$64     ; Right
-BEQ validKey
+BNE rightEnd
+PHA
+LDA $00
+CMP #$61
+BNE validKey
+PLA
+rightEnd:
+
 JMP invalidKey
 
 validKey:
+PLA
 STA 0        ; If the key is W/A/S/D, store it to ZP-0
 invalidKey:
 
@@ -54,8 +85,7 @@ JMP Loop     ; Listen for another key
 
 ;; Functions 
 GoingUp:
-LDA #0
-STA ($01), Y ; Clear old position
+JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 SEC
 SBC #$20     ; Move up one unit on the screen
@@ -68,27 +98,25 @@ STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
 GoingLeft:
-LDA #$0
-STA ($01), Y ; Clear old position
+JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
-PHA
-AND #$1f     ; Only worry about the 0011 1111 bits
 STA $4
+AND #$1f     ; Only worry about the 0011 1111 bits
 CMP #0       ; Check if the box is on the left
 BNE Wrap2    ; If not, continue
-PLA
+LDA $4
 ADC #$1f     ; If so, move to the right side of the screen
 STA $1
+STA $4
 Wrap2:
-PLA
+LDA $4
 DEC $01      ; Move box left
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
 GoingDown:
-LDA #0
-STA ($01), Y ; Clear old position
+JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 CLC
 ADC #$20     ; Move up one unit on the screen
@@ -101,19 +129,19 @@ STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
 GoingRight:
-LDA #$0
-STA ($01), Y ; Clear old position
+JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
-PHA
+STA $4
 AND #$1f     ; Only worry about the 0011 1111 bits
 CMP #$1f     ; Check if the box is on the right
 BNE Wrap4    ; If not, continue
-PLA
+LDA $4
 SEC
-SBC #$1f     ; If so, move to the left side of the screen
+SBC #$20     ; If so, move to the left side of the screen
 STA $1
+STA $4
 Wrap4:
-PLA
+LDA $4
 INC $01      ; Move box right
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
@@ -141,4 +169,9 @@ LDY #5
 STY $02      ; If so, reset the higher byte back to immediate 5
 ReturnDec:
 LDY #0
+RTS
+
+clearOld:
+LDA #0
+STA ($01), Y ; Clear old position
 RTS
