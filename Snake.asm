@@ -1,5 +1,14 @@
 ;; 6502 Snake game
 
+;; Memory addresses
+; $00 Previous valid key pressed
+; $01 Low-byte for the snake head's pointer
+; $02 High-byte for the snake head's pointer
+; $03 Loop counter to adjust the refresh rate
+; $04 Current x position
+; $05 Low-byte for the old snake head's pointer
+; $06 High-byte for the old snake head's pointer
+
 LDA #$f0   ; Set the lower byte
 STA $01
 LDA #$03   ; Set the higher byte
@@ -13,8 +22,8 @@ Loop:
 LDY #0       ; Reset Y back to 0
 
 ;; Handle the loop counter
-INC $3       ; Game loop delay
-LDA $3       ; Load the delay counter into A
+INC $3       ; Game loop counter
+LDA $3       ; Load the loop counter into A
 AND #$3f     ; Only worry about the 0011 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
@@ -103,36 +112,30 @@ STA ($01), Y ; Store the colour into the GPU
 JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
-GoingLeft:
-LDA $01      ; Load the lower byte into A
-STA $4
-AND #$1f     ; Only worry about the 0011 1111 bits
-CMP #0       ; Check if the box is on the left
-BNE Wrap2    ; If not, continue
-LDA $4
-ADC #$1f     ; If so, move to the right side of the screen
-STA $1
-STA $4
-Wrap2:
-LDA $4
-DEC $01      ; Move box left
-LDA #$3      ; Make the box cyan
-STA ($01), Y ; Store the colour into the GPU
-JSR clearOld ; First, clear old position
-JMP Loop     ; Restart loop
-
 GoingDown:
 LDA $01      ; Load the lower byte into A
 CLC
 ADC #$20     ; Move up one unit on the screen
 STA $01      ; Store new position
-BCC Wrap3    ; Need to decrement the higher byte
+BCC Wrap2    ; Need to decrement the higher byte
 JSR IncrementHigher
+Wrap2:
+JMP DrawDot  ; Draw new dot, and remove old dot
+
+GoingLeft:
+LDA $01      ; Load the lower byte into A
+STA $4
+AND #$1f     ; Only worry about the 0011 1111 bits
+CMP #0       ; Check if the box is on the left
+BNE Wrap3    ; If not, continue
+LDA $4
+ADC #$1f     ; If so, move to the right side of the screen
+STA $1
+STA $4
 Wrap3:
-LDA #$3      ; Make the box cyan
-STA ($01), Y ; Store the colour into the GPU
-JSR clearOld ; First, clear old position
-JMP Loop     ; Restart loop
+LDA $4
+DEC $01      ; Move box left
+JMP DrawDot  ; Draw new dot, and remove old dot
 
 GoingRight:
 LDA $01      ; Load the lower byte into A
@@ -148,6 +151,9 @@ STA $4
 Wrap4:
 LDA $4
 INC $01      ; Move box right
+JMP DrawDot  ; Draw new dot, and remove old dot
+
+DrawDot:
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JSR clearOld ; First, clear old position
