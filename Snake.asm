@@ -104,7 +104,6 @@ JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingLeft:
-JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 STA $4
 AND #$1f     ; Only worry about the 0011 1111 bits
@@ -123,7 +122,6 @@ JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingDown:
-JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 CLC
 ADC #$20     ; Move up one unit on the screen
@@ -137,7 +135,6 @@ JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
 
 GoingRight:
-JSR clearOld ; First, clear old position
 LDA $01      ; Load the lower byte into A
 STA $4
 AND #$1f     ; Only worry about the 0011 1111 bits
@@ -155,7 +152,6 @@ LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JSR clearOld ; First, clear old position
 JMP Loop     ; Restart loop
-
 
 ;; Subroutines
 IncrementHigher:
