@@ -36,19 +36,31 @@ JMP Loop     ; Listen for another key
 
 ;; Functions 
 GoingUp:
-LDA $01      ; Load the lower byte
+LDA #0
+STA ($01), Y ; Clear old position
+LDA $01      ; Load the lower byte into A
 SEC
 SBC #$20     ; Move up one unit on the screen
 STA $01      ; Store new position
 BCS Wrap1    ; Need to decrement the higher byte
 JSR DecrementHigher
 Wrap1:
-LDA $fe
+LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
 GoingLeft:
-LDA #$7
+LDA #$0
+STA ($01), Y ; Clear old position
+LDA $01      ; Load the lower byte into A
+AND #$3f     ; Only worry about the 0011 1111 bits
+CMP #0       ; Check if the box is on the left
+BNE Wrap2    ; If not, continue
+ADC #$1f     ; If so, move to the right side of the screen
+STA $1
+Wrap2:
+DEC $01      ; Move box left
+LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JMP Loop     ; Restart loop
 
