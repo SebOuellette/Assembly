@@ -1,13 +1,15 @@
 ;; 6502 Snake game
 
 ;; Memory addresses
-; $00 Previous valid key pressed
-; $01 Low-byte for the snake head's pointer
-; $02 High-byte for the snake head's pointer
-; $03 Loop counter to adjust the refresh rate
-; $04 Current x position
-; $05 Low-byte for the old snake head's pointer
-; $06 High-byte for the old snake head's pointer
+;define prevKey   $00 ; previous valid key pressed
+;define pointerL  $01 ; Low-byte for the snake head's pointer
+;define pointerH  $02 ; High-byte for the snake head's pointer
+;define lCounter  $03 ; Loop counter to adjust the refresh rate
+;define xPosition $04 ; Current x position
+;define oPointerL $05 ; Low-byte for the old snake head's pointer
+;define oPointerH $06 ; High-byte for the old snake head's pointer
+;define tailMem   $1000 ; The starting memory address for the tail
+;define tailLen   $07 ; The length of the tail
 
 LDA #$f0   ; Set the lower byte
 STA $01
