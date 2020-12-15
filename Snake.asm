@@ -23,7 +23,7 @@ LDA #$03   ; Set the higher byte
 STA $02
 
 ;; Create tail
-LDX #$10    ; Length of tail to add
+LDX #$20    ; Length of tail to add
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
@@ -36,7 +36,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$1f     ; Only worry about the 0001 1111 bits
+AND #$3f     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -162,12 +162,13 @@ LDA $4
 INC $01      ; Move box right
 JMP DrawDot  ; Draw new dot, and remove old dot
 
-DrawDot: 
+DrawDot:
+JSR updateTail ; This function will call loop once it's done
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 LDA #$a      ; Load the tail colour
 STA ($05), Y ; Clear old position
-JMP updateTail ; This function will call loop once it's done
+JMP Loop
 
 ;; Subroutines
 IncrementHigher:
@@ -213,7 +214,7 @@ STY $0a      ; Store the final tail index into $0a
 PLA          ; Pull A from stack
 RTS
 
-;; The more efficient tail update function (No longer needs to be a subroutine)
+;; The more efficient tail update function
 updateTail:
 ;; Load the head position, store in the final tail item
 LDY $a       ; Put the final tail length index into Y
@@ -240,4 +241,5 @@ countLoop:
 DEY          ; Decrement Y twice to find the new final element
 DEY
 STY $a
-JMP Loop
+LDY #0
+RTS
