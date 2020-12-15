@@ -23,7 +23,7 @@ LDA #$03   ; Set the higher byte
 STA $02
 
 ;; Create tail
-LDX #$a    ; Length of tail to add
+LDX #$10    ; Length of tail to add
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
@@ -165,9 +165,9 @@ JMP DrawDot  ; Draw new dot, and remove old dot
 DrawDot: 
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
-JSR clearOld ; First, clear old position
-JMP updateTail2
-JMP Loop     ; Restart loop
+LDA #$a      ; Load the tail colour
+STA ($05), Y ; Clear old position
+JMP updateTail ; This function will call loop once it's done
 
 ;; Subroutines
 IncrementHigher:
@@ -192,13 +192,6 @@ ReturnDec:
 LDY #0
 RTS
 
-;; Clear the old square from the screen
-clearOld:
-LDA #0
-STA ($05), Y ; Clear old position
-RTS
-
-
 ;; Create the tail
 addTail: 
 PHA          ; Push A to the stack
@@ -221,13 +214,17 @@ PLA          ; Pull A from stack
 RTS
 
 ;; The more efficient tail update function (No longer needs to be a subroutine)
-updateTail2:
-LDA #$a      ; Load Red
-STA ($5), Y  ; Store red into the old head position to reduce flashing
-
+updateTail:
 ;; Load the head position, store in the final tail item
 LDY $a       ; Put the final tail length index into Y
-;DEY          ; Decrement Y because it starts one value higher for some reason
+LDA $1000, Y
+STA $8       ; Load the last tail element into the low tmp byte
+INY
+LDA $1000, Y
+STA $9       ; Load the last tail element into the high temp byte
+DEY          ; Set Y back to the proper low-byte index
+LDA #0       ; Load black
+STA ($8, X)  ; Clear the last element in the tail
 LDA $1       ; Load the head low byte
 STA $1000, Y ; Store into the low byte for the "last" tail element (visually last)
 STA $8
@@ -236,24 +233,11 @@ LDA $2       ; Load the head high byte
 STA $1000, Y ; Store into the high byte for the "last" tail element (visually last)
 STA $9
 DEY          ; Decrement Y
-
 BNE countLoop ; Check if the index is 0, if not, do the loop
 LDA $7       ; If it is, reset it back to the length - 2
-SEC          ; Set carry bit
-SBC #2       ; Subtract 2 from length
 TAY
 countLoop: 
-
 DEY          ; Decrement Y twice to find the new final element
 DEY
 STY $a
-
-LDA $1000, Y
-STA $8       ; Load the last tail element into the low tmp byte
-INY
-LDA $1000, Y
-STA $9       ; Load the last tail element into the high temp byte
-LDA #0       ; Load black
-STA ($8, X)  ; Clear the last element in the tail
-
 JMP Loop
