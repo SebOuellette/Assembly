@@ -12,7 +12,8 @@ JMP Start  ; Skip the variables
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
 ;define tailLen   $07 ; Double the length of the tail
 ;define tmpPointL $08 ; The low-byte for a tmp pointer
-;define tmpPointH $09 ; THe high-byte for a tmp pointer
+;define tmpPointH $09 ; The high-byte for a tmp pointer
+;define lastTail  $0a ; Stores the index of whatever the last tail index is
 
 Start:
 ;; Create pointer
@@ -22,7 +23,7 @@ LDA #$03   ; Set the higher byte
 STA $02
 
 ;; Create tail
-LDY #$0f    ; Length of tail to add
+LDX #$a    ; Length of tail to add
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
@@ -35,7 +36,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$00     ; Only worry about the 0001 1111 bits
+AND #$1f     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -165,7 +166,7 @@ DrawDot:
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JSR clearOld ; First, clear old position
-JSR updateTail
+JMP updateTail2
 JMP Loop     ; Restart loop
 
 ;; Subroutines
@@ -191,86 +192,68 @@ ReturnDec:
 LDY #0
 RTS
 
+;; Clear the old square from the screen
 clearOld:
 LDA #0
 STA ($05), Y ; Clear old position
 RTS
 
-addTail:
+
+;; Create the tail
+addTail: 
 PHA          ; Push A to the stack
-TYA          ; Transfer Y to A
 Decrement:
 BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
 LDY $7       ; Load the tail length into Y
 INC $7       ; Increment the tail length
-PHA
 LDA $01
 STA $1000, Y  ; Store the current low-byte into the tail memory address
 LDY $7       ; Load the new tail length/index into Y
 INC $7       ; Increment the tail length again
 LDA $02
 STA $1000, Y  ; Store the current high-byte into the tail memory address
-PLA
-SEC
-SBC #1       ; Decrement A by 1
+DEX           ; Decrement A by 1
 JMP Decrement
 continueTail:
+DEY
+STY $0a      ; Store the final tail index into $0a
 PLA          ; Pull A from stack
 RTS
 
-;; Update the tail in memory and draw to screen
-updateTail:
-PHA
+;; The more efficient tail update function (No longer needs to be a subroutine)
+updateTail2:
 LDA #$a      ; Load Red
-STA ($5), Y
-LDX #0
-LDY $7
-DEY          ; Decrement Y by 2
-DEY          ; ^
-LDA $1000, Y  ; Load the pointer's low byte into A
-PHA          ; Push A to stack
+STA ($5), Y  ; Store red into the old head position to reduce flashing
+
+;; Load the head position, store in the final tail item
+LDY $a       ; Put the final tail length index into Y
+;DEY          ; Decrement Y because it starts one value higher for some reason
+LDA $1       ; Load the head low byte
+STA $1000, Y ; Store into the low byte for the "last" tail element (visually last)
+STA $8
 INY
-LDA $1000, Y  ; Load the pointer's high byte into A
-PHA          ; Push A to stack
-LDA $7       ; Load the tail length into A
-SEC          ; Set the carry bit
-SBC #2       ; Subtract 2 from tail length
-nextTailPiece:
-BEQ tailDone ; Check if the tail count is zero, if so, skip to tailDone
-SEC          ; Set the carry bit
-SBC #2       ; Subtract 2 from tail length
-TAY          ; Store the tail count into Y
+LDA $2       ; Load the head high byte
+STA $1000, Y ; Store into the high byte for the "last" tail element (visually last)
+STA $9
+DEY          ; Decrement Y
+
+BNE countLoop ; Check if the index is 0, if not, do the loop
+LDA $7       ; If it is, reset it back to the length - 2
+SEC          ; Set carry bit
+SBC #2       ; Subtract 2 from length
+TAY
+countLoop: 
+
+DEY          ; Decrement Y twice to find the new final element
+DEY
+STY $a
+
 LDA $1000, Y
-INY          ; Increment Y twice to find new high-byte
-INY          ; ^
-STA $1000, Y
-STA $8       ; Store into tmp address
-DEY          ; Decrement Y, load low-byte
-LDA $1000, Y
-INY          ; Increment Y twice to find new low-byte
-INY          ; ^
-STA $1000, Y
-STA $9       ; Store into tmp address
-LDA #$a      ; Load red into A
-STA ($8, X)  ; Draw the tail
-DEY          ; Decrement Y three times to get ready for next loop
-DEY          ; ^
-DEY          ; ^
-TYA          ; Transfer the tail count to A
-JMP nextTailPiece ; Restart the loop, move tail pieces
-tailDone:
-PLA
-STA $9       ; Store high byte into tmp address
-PLA
-STA $8       ; Store low byte into tmp address
-LDA #$0      ; Load Black
-LDX #0
-STA ($8, X)  ; Remove the last piece of the tail
-LDA $1       ; Load the head piece low byte into the first tail piece
-STA $1000, Y
+STA $8       ; Load the last tail element into the low tmp byte
 INY
-LDA $2       ; Load the head piece high byte into the first tail piece
-STA $1000, Y
-LDY #0       ; Set Y to 0, pull from stack, return from subroutine
-PLA
-RTS
+LDA $1000, Y
+STA $9       ; Load the last tail element into the high temp byte
+LDA #0       ; Load black
+STA ($8, X)  ; Clear the last element in the tail
+
+JMP Loop
