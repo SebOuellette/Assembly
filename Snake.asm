@@ -221,6 +221,8 @@ RTS
 ;; Update the tail in memory and draw to screen
 updateTail:
 PHA
+LDA #$a      ; Load Red
+STA ($5), Y
 LDX #0
 LDY $7
 DEY          ; Decrement Y by 2
@@ -269,6 +271,6 @@ STA $1000, Y
 INY
 LDA $2       ; Load the head piece high byte into the first tail piece
 STA $1000, Y
-;LDY #0       ; Set Y to 0, pull from stack, return from subroutine
+LDY #0       ; Set Y to 0, pull from stack, return from subroutine
 PLA
 RTS
