@@ -12,7 +12,9 @@ JMP Start  ; Skip the variables
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
 ;define tailLen   $07 ; Double the length of the tail
 ;define tPointerL $08 ; The low-byte for the tail pointer
-;define tPointerR $09 ; The high-byte for the tail pointer
+;define tPointerH $09 ; The high-byte for the tail pointer
+;define tmpPointL $0a ; The low-byte for a tmp pointer
+;define tmpPointH $0b ; THe high-byte for a tmp pointer
 
 Start:
 ;; Create pointer
@@ -26,7 +28,7 @@ STA $08
 LDA #$10
 STA $09
 ;; Create tail
-LDY #3     ; Length of tail to add
+LDY #$5     ; Length of tail to add
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
@@ -39,7 +41,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$01     ; Only worry about the 0001 1111 bits
+AND #$0f     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -88,7 +90,6 @@ JMP invalidKey
 validKey:
 PLA
 STA 0        ; If the key is W/A/S/D, store it to ZP-0
-JSR updateTail
 invalidKey:
 
 ;; Store the old player address
@@ -123,10 +124,7 @@ STA $01      ; Store new position
 BCS Wrap1    ; Need to decrement the higher byte
 JSR DecrementHigher
 Wrap1:
-LDA #$3      ; Make the box cyan
-STA ($01), Y ; Store the colour into the GPU
-JSR clearOld ; First, clear old position
-JMP Loop     ; Restart loop
+JMP DrawDot  ; Draw new dot, and remove old dot
 
 GoingDown:
 LDA $01      ; Load the lower byte into A
@@ -169,10 +167,11 @@ LDA $4
 INC $01      ; Move box right
 JMP DrawDot  ; Draw new dot, and remove old dot
 
-DrawDot:
+DrawDot: 
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 JSR clearOld ; First, clear old position
+JSR updateTail
 JMP Loop     ; Restart loop
 
 ;; Subroutines
@@ -226,8 +225,17 @@ LDY #0       ; Put immediate 0 back into Y
 PLA          ; Pull A from stack
 RTS
 
+;; Update the tail in memory and draw to screen
 updateTail:
 PHA
+LDY $7
+DEY          ; Decrement Y by 2
+DEY          ; ^
+LDA ($8), Y  ; Load the pointer's low byte into A
+PHA          ; Push A to stack
+INY
+LDA ($8), Y  ; Load the pointer's high byte into A
+PHA          ; Push A to stack
 LDA $7       ; Load the tail length into A
 SEC          ; Set the carry bit
 SBC #2       ; Subtract 2 from tail length
@@ -240,21 +248,35 @@ LDA ($8), Y
 INY          ; Increment Y twice to find new high-byte
 INY          ; ^
 STA ($8), Y
+STA $a       ; Store into tmp address
 DEY          ; Decrement Y, load low-byte
 LDA ($8), Y
 INY          ; Increment Y twice to find new low-byte
 INY          ; ^
 STA ($8), Y
+STA $b       ; Store into tmp address
+LDA #$a      ; Load red into A
+LDX #0
+STA ($a, X)  ; Draw the tail
 DEY          ; Decrement Y three times to get ready for next loop
 DEY          ; ^
 DEY          ; ^
 TYA          ; Transfer the tail count to A
 JMP nextTailPiece ; Restart the loop, move tail pieces
 tailDone:
-LDA $5       ; Load the head piece low byte into the first tail piece
+PLA
+STA $b       ; Store high byte into tmp address
+PLA
+STA $a       ; Store low byte into tmp address
+
+LDA #$0      ; Load Red
+LDX #0
+STA ($a, X)  ; Draw the tail as red
+
+LDA $1       ; Load the head piece low byte into the first tail piece
 STA ($8), Y
 INY
-LDA $6       ; Load the head piece high byte into the first tail piece
+LDA $2       ; Load the head piece high byte into the first tail piece
 STA ($8), Y
 LDY #0       ; Set Y to 0, pull from stack, return from subroutine
 PLA
