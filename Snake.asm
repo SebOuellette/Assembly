@@ -10,8 +10,9 @@ JMP Start  ; Skip the variables
 ;define xPosition $04 ; Current x position
 ;define oPointerL $05 ; Low-byte for the old snake head's pointer
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
-;define tailMem   $1000 ; The starting memory address for the tail
 ;define tailLen   $07 ; Double the length of the tail
+;define tPointerL $08 ; The low-byte for the tail pointer
+;define tPointerR $09 ; The high-byte for the tail pointer
 
 Start:
 ;; Create pointer
@@ -21,9 +22,9 @@ LDA #$03   ; Set the higher byte
 STA $02
 ;; Create tail pointer
 LDA #$00
-STA $05
+STA $08
 LDA #$10
-STA $06
+STA $09
 ;; Create tail
 LDY #3     ; Length of tail to add
 JSR addTail
@@ -38,7 +39,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$3f     ; Only worry about the 0011 1111 bits
+AND #$01     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -211,11 +212,11 @@ LDY $7       ; Load the tail length into Y
 INC $7       ; Increment the tail length
 PHA
 LDA $01
-STA ($5), Y  ; Store the current low-byte into the tail memory address
+STA ($8), Y  ; Store the current low-byte into the tail memory address
 LDY $7       ; Load the new tail length/index into Y
 INC $7       ; Increment the tail length again
 LDA $02
-STA ($5), Y  ; Store the current high-byte into the tail memory address
+STA ($8), Y  ; Store the current high-byte into the tail memory address
 PLA
 SEC
 SBC #1       ; Decrement A by 1
@@ -230,26 +231,31 @@ PHA
 LDA $7       ; Load the tail length into A
 SEC          ; Set the carry bit
 SBC #2       ; Subtract 2 from tail length
-
 nextTailPiece:
+BEQ tailDone ; Check if the tail count is zero, if so, skip to tailDone
 SEC          ; Set the carry bit
 SBC #2       ; Subtract 2 from tail length
 TAY          ; Store the tail count into Y
-
-BEQ tailDone ; Check if the tail count is zero, if so, skip to tailDone
-LDA ($5), Y
+LDA ($8), Y
 INY          ; Increment Y twice to find new high-byte
 INY          ; ^
-STA ($5), Y
+STA ($8), Y
 DEY          ; Decrement Y, load low-byte
-LDA ($5), Y
+LDA ($8), Y
 INY          ; Increment Y twice to find new low-byte
 INY          ; ^
-STA ($5), Y
-
-JMP nextTailPiece
-;; TODO:
-;;  Load head position to first tail position
+STA ($8), Y
+DEY          ; Decrement Y three times to get ready for next loop
+DEY          ; ^
+DEY          ; ^
+TYA          ; Transfer the tail count to A
+JMP nextTailPiece ; Restart the loop, move tail pieces
 tailDone:
+LDA $5       ; Load the head piece low byte into the first tail piece
+STA ($8), Y
+INY
+LDA $6       ; Load the head piece high byte into the first tail piece
+STA ($8), Y
+LDY #0       ; Set Y to 0, pull from stack, return from subroutine
 PLA
 RTS
