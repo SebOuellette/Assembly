@@ -11,10 +11,8 @@ JMP Start  ; Skip the variables
 ;define oPointerL $05 ; Low-byte for the old snake head's pointer
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
 ;define tailLen   $07 ; Double the length of the tail
-;define tPointerL $08 ; The low-byte for the tail pointer
-;define tPointerH $09 ; The high-byte for the tail pointer
-;define tmpPointL $0a ; The low-byte for a tmp pointer
-;define tmpPointH $0b ; THe high-byte for a tmp pointer
+;define tmpPointL $08 ; The low-byte for a tmp pointer
+;define tmpPointH $09 ; THe high-byte for a tmp pointer
 
 Start:
 ;; Create pointer
@@ -22,13 +20,9 @@ LDA #$f0   ; Set the lower byte
 STA $01
 LDA #$03   ; Set the higher byte
 STA $02
-;; Create tail pointer
-LDA #$00
-STA $08
-LDA #$10
-STA $09
+
 ;; Create tail
-LDY #$5     ; Length of tail to add
+LDY #$0f    ; Length of tail to add
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
@@ -41,7 +35,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$0f     ; Only worry about the 0001 1111 bits
+AND #$00     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -211,30 +205,30 @@ LDY $7       ; Load the tail length into Y
 INC $7       ; Increment the tail length
 PHA
 LDA $01
-STA ($8), Y  ; Store the current low-byte into the tail memory address
+STA $1000, Y  ; Store the current low-byte into the tail memory address
 LDY $7       ; Load the new tail length/index into Y
 INC $7       ; Increment the tail length again
 LDA $02
-STA ($8), Y  ; Store the current high-byte into the tail memory address
+STA $1000, Y  ; Store the current high-byte into the tail memory address
 PLA
 SEC
 SBC #1       ; Decrement A by 1
 JMP Decrement
 continueTail:
-LDY #0       ; Put immediate 0 back into Y
 PLA          ; Pull A from stack
 RTS
 
 ;; Update the tail in memory and draw to screen
 updateTail:
 PHA
+LDX #0
 LDY $7
 DEY          ; Decrement Y by 2
 DEY          ; ^
-LDA ($8), Y  ; Load the pointer's low byte into A
+LDA $1000, Y  ; Load the pointer's low byte into A
 PHA          ; Push A to stack
 INY
-LDA ($8), Y  ; Load the pointer's high byte into A
+LDA $1000, Y  ; Load the pointer's high byte into A
 PHA          ; Push A to stack
 LDA $7       ; Load the tail length into A
 SEC          ; Set the carry bit
@@ -244,20 +238,19 @@ BEQ tailDone ; Check if the tail count is zero, if so, skip to tailDone
 SEC          ; Set the carry bit
 SBC #2       ; Subtract 2 from tail length
 TAY          ; Store the tail count into Y
-LDA ($8), Y
+LDA $1000, Y
 INY          ; Increment Y twice to find new high-byte
 INY          ; ^
-STA ($8), Y
-STA $a       ; Store into tmp address
+STA $1000, Y
+STA $8       ; Store into tmp address
 DEY          ; Decrement Y, load low-byte
-LDA ($8), Y
+LDA $1000, Y
 INY          ; Increment Y twice to find new low-byte
 INY          ; ^
-STA ($8), Y
-STA $b       ; Store into tmp address
+STA $1000, Y
+STA $9       ; Store into tmp address
 LDA #$a      ; Load red into A
-LDX #0
-STA ($a, X)  ; Draw the tail
+STA ($8, X)  ; Draw the tail
 DEY          ; Decrement Y three times to get ready for next loop
 DEY          ; ^
 DEY          ; ^
@@ -265,19 +258,17 @@ TYA          ; Transfer the tail count to A
 JMP nextTailPiece ; Restart the loop, move tail pieces
 tailDone:
 PLA
-STA $b       ; Store high byte into tmp address
+STA $9       ; Store high byte into tmp address
 PLA
-STA $a       ; Store low byte into tmp address
-
-LDA #$0      ; Load Red
+STA $8       ; Store low byte into tmp address
+LDA #$0      ; Load Black
 LDX #0
-STA ($a, X)  ; Draw the tail as red
-
+STA ($8, X)  ; Remove the last piece of the tail
 LDA $1       ; Load the head piece low byte into the first tail piece
-STA ($8), Y
+STA $1000, Y
 INY
 LDA $2       ; Load the head piece high byte into the first tail piece
-STA ($8), Y
-LDY #0       ; Set Y to 0, pull from stack, return from subroutine
+STA $1000, Y
+;LDY #0       ; Set Y to 0, pull from stack, return from subroutine
 PLA
 RTS
