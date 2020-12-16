@@ -36,7 +36,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$3f     ; Only worry about the 0001 1111 bits
+AND #$1f     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -164,6 +164,11 @@ JMP DrawDot  ; Draw new dot, and remove old dot
 
 DrawDot:
 JSR updateTail ; This function will call loop once it's done
+LDA ($01), Y ; Load whatever colour is stored at the new position
+CMP #$0a     ; Check if the new location has a red pixel stored
+BNE continueDraw ; If it is, halt the program
+BRK
+continueDraw: ; If it's not, continue with the program
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 LDA #$a      ; Load the tail colour
