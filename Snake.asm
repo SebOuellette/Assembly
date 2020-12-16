@@ -10,11 +10,11 @@ JMP Start  ; Skip the variables
 ;define xPosition $04 ; Current x position
 ;define oPointerL $05 ; Low-byte for the old snake head's pointer
 ;define oPointerH $06 ; High-byte for the old snake head's pointer
-;define tailLen   $07 ; Double the length of the tail
-;define tmpPointL $08 ; The low-byte for a tmp pointer
-;define tmpPointH $09 ; The high-byte for a tmp pointer
-;define lastTail  $0a ; Stores the index of whatever the last tail index is
-;define tmpByte   $0b ; Stores a temporary byte to be used for storing arithmetic stuff
+;define tmpPointL $07 ; The low-byte for a tmp pointer
+;define tmpPointH $08 ; The high-byte for a tmp pointer
+;define tmpByte   $09 ; Stores a temporary byte to be used for storing arithmetic stuff
+;define tailLen   $0a ; Double the length of the tail
+;define lastTail  $0c ; Stores the index of whatever the last tail index is
 
 Start:
 ;; Create pointer
@@ -220,60 +220,60 @@ makeTail:
 PHA          ; Push A to the stack
 Decrement:
 BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
-LDY $7       ; Load the tail length into Y
-INC $7       ; Increment the tail length
+LDY $a       ; Load the tail length into Y
+INC $a       ; Increment the tail length
 LDA $01
 STA $1000, Y  ; Store the current low-byte into the tail memory address
-LDY $7       ; Load the new tail length/index into Y
-INC $7       ; Increment the tail length again
+LDY $a       ; Load the new tail length/index into Y
+INC $a       ; Increment the tail length again
 LDA $02
 STA $1000, Y  ; Store the current high-byte into the tail memory address
 DEX           ; Decrement A by 1
 JMP Decrement
 continueTail:
 DEY
-STY $0a      ; Store the final tail index into $0a
+STY $c       ; Store the final tail index into $0a
 PLA          ; Pull A from stack
 RTS
 
 ;; The more efficient tail update function
 updateTail:
 ;; Load the head position, store in the final tail item
-LDY $a       ; Put the final tail length index into Y
+LDY $c       ; Put the final tail length index into Y
 LDA $1000, Y
-STA $8       ; Load the last tail element into the low tmp byte
+STA $7       ; Load the last tail element into the low tmp byte
 INY
 LDA $1000, Y
-STA $9       ; Load the last tail element into the high temp byte
+STA $8       ; Load the last tail element into the high temp byte
 DEY          ; Set Y back to the proper low-byte index
 LDA #0       ; Load black
-STA ($8, X)  ; Clear the last element in the tail
+STA ($7, X)  ; Clear the last element in the tail
 LDA $1       ; Load the head low byte
 STA $1000, Y ; Store into the low byte for the "last" tail element (visually last)
-STA $8
+STA $7
 INY
 LDA $2       ; Load the head high byte
 STA $1000, Y ; Store into the high byte for the "last" tail element (visually last)
-STA $9
+STA $8
 DEY          ; Decrement Y
 BNE countLoop ; Check if the index is 0, if not, do the loop
-LDA $7       ; If it is, reset it back to the length - 2
+LDA $a       ; If it is, reset it back to the length - 2
 TAY
 countLoop: 
 DEY          ; Decrement Y twice to find the new final element
 DEY
-STY $a
+STY $c
 LDY #0
 RTS
 
 ;; Increase the tail length by 1, length passed through A
 increaseTail:
 ASL          ; Multiply the length to add by 2
-STA $b       ; Store the length to add into the tmp address
-LDA $7       ; Load the snake length into A
+STA $9       ; Store the length to add into the tmp address
+LDA $a       ; Load the snake length into A
 CLC
-ADC $b       ; Add the length to add
-STA $7       ; Store new length
+ADC $9       ; Add the length to add
+STA $a       ; Store new length
 RTS
 
 ;; Create new item on the field, pick up to gain more tail length
@@ -282,16 +282,16 @@ PHA
 LDX #0;
 LoadRND:
 LDY $fe      ; Load random low-byte into Y
-STY $8
+STY $7
 LDA $fe      ; Load random high-byte into A
 AND #3       ; And with binary 11, puts in range of 0-3
 CLC
 ADC #2       ; Add 2
-STA $9       ; Store into the tmp byte
-LDA ($8, X)  ; Load the colour at the position on the screen
+STA $8       ; Store into the tmp byte
+LDA ($7, X)  ; Load the colour at the position on the screen
 BNE LoadRND  ; If it's not black, find another spot
 LDA #$8      ; Otherwise, Load orange
-STA ($8, X)  ; Store to random point on screen (pointer)
+STA ($7, X)  ; Store to random point on screen (pointer)
 LDY #0
 PLA
 RTS
