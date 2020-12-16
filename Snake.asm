@@ -181,6 +181,8 @@ JMP Loop
 checkTail:
 CMP #$0a     ; Check if the new location has a red pixel stored
 BNE tailNotFound ; If it is, halt the program
+PLA
+PLA              ; Pull the subroutine stuff out of the stack
 ;JMP Start
 BRK
 tailNotFound: ; If it's not, continue with the program
@@ -190,7 +192,7 @@ checkItem:
 CMP #$08     ; Check if the new location has an orange pixel stored
 BNE itemNotFound ; If it is, add extra length to the snake the program
 PHA
-LDA #2       ; Increase the length of the tail by 2
+LDA #1       ; Increase the length of the tail by 2
 JSR increaseTail
 JSR makeItem ; Create new item
 PLA
@@ -283,16 +285,19 @@ RTS
 ;; Create new item on the field, pick up to gain more tail length
 makeItem:
 PHA 
-LDA #0
-STA $8
+LDX #0;
+LoadRND:
 LDY $fe      ; Load random low-byte into Y
+STY $8
 LDA $fe      ; Load random high-byte into A
 AND #3       ; And with binary 11, puts in range of 0-3
 CLC
 ADC #2       ; Add 2
 STA $9       ; Store into the tmp byte
-LDA #$8      ; Load orange
-STA ($8), Y  ; Store to random point on screen
+LDA ($8, X)  ; Load the colour at the position on the screen
+BNE LoadRND  ; If it's not black, find another spot
+LDA #$8      ; Otherwise, Load orange
+STA ($8, X)  ; Store to random point on screen (pointer)
 LDY #0
 PLA
 RTS
