@@ -14,6 +14,7 @@ JMP Start  ; Skip the variables
 ;define tmpPointL $08 ; The low-byte for a tmp pointer
 ;define tmpPointH $09 ; The high-byte for a tmp pointer
 ;define lastTail  $0a ; Stores the index of whatever the last tail index is
+;define tmpByte   $0b ; Stores a temporary byte to be used for storing arithmetic stuff
 
 Start:
 ;; Create pointer
@@ -23,12 +24,15 @@ LDA #$03   ; Set the higher byte
 STA $02
 
 ;; Create tail
-LDX #$20    ; Length of snake (including head)
-JSR addTail
+LDX #$4     ; Length of snake (including head)
+JSR makeTail
 
-LDY #0     ; Set Y to immediate 0
+;; Create head
+LDY #0       ; Set Y to immediate 0
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
+
+JSR makeItem ; Create the first item
 
 Loop:
 LDY #0       ; Reset Y back to 0
@@ -36,7 +40,7 @@ LDY #0       ; Reset Y back to 0
 ;; Handle the loop counter
 INC $3       ; Game loop counter
 LDA $3       ; Load the loop counter into A
-AND #$1f     ; Only worry about the 0001 1111 bits
+AND #$3f     ; Only worry about the 0001 1111 bits
 STA $3
 CPY $3       ; Check if loop counter is 0
 BNE Loop     ; If not equal, restart loop
@@ -165,10 +169,8 @@ JMP DrawDot  ; Draw new dot, and remove old dot
 DrawDot:
 JSR updateTail ; This function will call loop once it's done
 LDA ($01), Y ; Load whatever colour is stored at the new position
-CMP #$0a     ; Check if the new location has a red pixel stored
-BNE continueDraw ; If it is, halt the program
-BRK
-continueDraw: ; If it's not, continue with the program
+JSR checkTail ; Check if the snake is going to run into itself
+JSR checkItem ; Check if the snake is going to run into an item
 LDA #$3      ; Make the box cyan
 STA ($01), Y ; Store the colour into the GPU
 LDA #$a      ; Load the tail colour
@@ -176,6 +178,25 @@ STA ($05), Y ; Clear old position
 JMP Loop
 
 ;; Subroutines
+checkTail:
+CMP #$0a     ; Check if the new location has a red pixel stored
+BNE tailNotFound ; If it is, halt the program
+;JMP Start
+BRK
+tailNotFound: ; If it's not, continue with the program
+RTS
+
+checkItem:
+CMP #$08     ; Check if the new location has an orange pixel stored
+BNE itemNotFound ; If it is, add extra length to the snake the program
+PHA
+LDA #2       ; Increase the length of the tail by 2
+JSR increaseTail
+JSR makeItem ; Create new item
+PLA
+itemNotFound: ; If it's not, continue with the program
+RTS
+
 IncrementHigher:
 INC $02      ; Decrement highest
 LDY #6
@@ -199,7 +220,7 @@ LDY #0
 RTS
 
 ;; Create the tail
-addTail: 
+makeTail: 
 PHA          ; Push A to the stack
 Decrement:
 BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
@@ -247,4 +268,31 @@ DEY          ; Decrement Y twice to find the new final element
 DEY
 STY $a
 LDY #0
+RTS
+
+;; Increase the tail length by 1, length passed through A
+increaseTail:
+ASL          ; Multiply the length to add by 2
+STA $b       ; Store the length to add into the tmp address
+LDA $7       ; Load the snake length into A
+CLC
+ADC $b       ; Add the length to add
+STA $7       ; Store new length
+RTS
+
+;; Create new item on the field, pick up to gain more tail length
+makeItem:
+PHA 
+LDA #0
+STA $8
+LDY $fe      ; Load random low-byte into Y
+LDA $fe      ; Load random high-byte into A
+AND #3       ; And with binary 11, puts in range of 0-3
+CLC
+ADC #2       ; Add 2
+STA $9       ; Store into the tmp byte
+LDA #$8      ; Load orange
+STA ($8), Y  ; Store to random point on screen
+LDY #0
+PLA
 RTS
