@@ -141,10 +141,7 @@ STA $4
 AND #$1f     ; Only worry about the 0011 1111 bits
 CMP #0       ; Check if the box is on the left
 BNE Wrap3    ; If not, continue
-LDA $4
-ADC #$1f     ; If so, move to the right side of the screen
-STA $1
-STA $4
+JMP gameOver ; If so, game over
 Wrap3:
 LDA $4
 DEC $01      ; Move box left
@@ -156,11 +153,7 @@ STA $4
 AND #$1f     ; Only worry about the 0011 1111 bits
 CMP #$1f     ; Check if the box is on the right
 BNE Wrap4    ; If not, continue
-LDA $4
-SEC
-SBC #$20     ; If so, move to the left side of the screen
-STA $1
-STA $4
+JMP gameOver ; If so, game over
 Wrap4:
 LDA $4
 INC $01      ; Move box right
@@ -177,14 +170,17 @@ LDA #$a      ; Load the tail colour
 STA ($05), Y ; Clear old position
 JMP Loop
 
+gameOver:
+BRK
+JMP Start
+
 ;; Subroutines
 checkTail:
 CMP #$0a     ; Check if the new location has a red pixel stored
 BNE tailNotFound ; If it is, halt the program
 PLA
-PLA              ; Pull the subroutine stuff out of the stack
-;JMP Start
-BRK
+PLA           ; Pull the subroutine stuff out of the stack
+JMP gameOver  ; Hit something, game is over
 tailNotFound: ; If it's not, continue with the program
 RTS
 
@@ -204,8 +200,7 @@ INC $02      ; Decrement highest
 LDY #6
 CPY $02      ; Check if the higher byte is immediate 6
 BNE ReturnDec  ; If not, continue with loop
-LDY #2
-STY $02      ; If so, reset the higher byte back to immediate 2
+JMP gameOver ; If so, game over 
 ReturnDec:
 LDY #0
 RTS
@@ -215,8 +210,7 @@ DEC $02      ; Decrement highest
 LDY #1
 CPY $02      ; Check if the higher byte is immediate 1
 BNE ReturnDec  ; If not, continue with loop
-LDY #5
-STY $02      ; If so, reset the higher byte back to immediate 5
+JMP gameOver ; If so, game over
 ReturnDec:
 LDY #0
 RTS
