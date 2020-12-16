@@ -23,7 +23,7 @@ LDA #$03   ; Set the higher byte
 STA $02
 
 ;; Create tail
-LDX #$20    ; Length of tail to add
+LDX #$20    ; Length of snake (including head)
 JSR addTail
 
 LDY #0     ; Set Y to immediate 0
