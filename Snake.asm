@@ -13,8 +13,10 @@ JMP Start  ; Skip the variables
 ;define tmpPointL $07 ; The low-byte for a tmp pointer
 ;define tmpPointH $08 ; The high-byte for a tmp pointer
 ;define tmpByte   $09 ; Stores a temporary byte to be used for storing arithmetic stuff
-;define tailLen   $0a ; Double the length of the tail
-;define lastTail  $0c ; Stores the index of whatever the last tail index is
+;define tailLenL  $0a ; Double the length of the tail - low byte
+;define tailLenH  $0b ; Double the length of the tail - high byte
+;define lastTailL $0c ; Stores the index of whatever the last tail index is - low byte
+;define lastTailH $0d ; Stores the index of whatever the last tail index is - high byte
 
 Start:
 ;; Create pointer
@@ -23,8 +25,13 @@ STA $01
 LDA #$03   ; Set the higher byte
 STA $02
 
+;; Init the tail length variables
+LDA #$10   ; Load $10 into A
+STA $b     ; Store into both the tail high bytes
+STA $d
+
 ;; Create tail
-LDX #$4     ; Length of snake (including head)
+LDX #$ff     ; Length of snake (including head)
 JSR makeTail
 
 ;; Create head
@@ -216,23 +223,38 @@ LDY #0
 RTS
 
 ;; Create the tail
-makeTail: 
+makeTail:
 PHA          ; Push A to the stack
+CMP #0
 Decrement:
 BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
-LDY $a       ; Load the tail length into Y
-INC $a       ; Increment the tail length
+CLC
 LDA $01
-STA $1000, Y  ; Store the current low-byte into the tail memory address
-LDY $a       ; Load the new tail length/index into Y
-INC $a       ; Increment the tail length again
+STA ($a), Y  ; Store the current low-byte into the tail memory address
+LDA $a       ; Load the tail length into A
+ADC #1       ; Increment the tail length to set carry bit
+STA $a       ; Store into the tail length
+LDA $b       ; Load the high byte into A
+ADC #0       ; Add the carry bit into the high byte
+STA $b
+CLC
 LDA $02
-STA $1000, Y  ; Store the current high-byte into the tail memory address
-DEX           ; Decrement A by 1
+STA ($a), Y  ; Store the current high-byte into the tail memory address
+LDA $a       ; Load the tail length into A
+ADC #1       ; Increment the tail length to set carry bit
+STA $a       ; Store into the tail length
+LDA $b       ; Load the high byte into A
+ADC #0       ; Add the carry bit into the high byte
+STA $b 
+DEX          ; Decrement X by 1
 JMP Decrement
 continueTail:
-DEY
-STY $c       ; Store the final tail index into $0a
+CLC
+LDA $a
+SBC #1
+STA $c       ; Store the final tail index into $0c
+LDA $b
+STA $d       ; Store the final high byte into the index at $0d
 PLA          ; Pull A from stack
 RTS
 
@@ -274,6 +296,9 @@ LDA $a       ; Load the snake length into A
 CLC
 ADC $9       ; Add the length to add
 STA $a       ; Store new length
+LDA $b       ; Load the snake high byte
+ADC #0       ; Add the carry bit
+STA $b
 RTS
 
 ;; Create new item on the field, pick up to gain more tail length
