@@ -31,7 +31,7 @@ STA $b     ; Store into both the tail high bytes
 STA $d
 
 ;; Create tail
-LDX #$ff     ; Length of snake (including head)
+LDX #$4     ; Length of snake (including head)
 JSR makeTail
 
 ;; Create head
@@ -195,7 +195,7 @@ checkItem:
 CMP #$08     ; Check if the new location has an orange pixel stored
 BNE itemNotFound ; If it is, add extra length to the snake the program
 PHA
-LDA #1       ; Increase the length of the tail by 2
+LDA #2       ; Increase the length of the tail by 2
 JSR increaseTail
 JSR makeItem ; Create new item
 PLA
@@ -229,23 +229,23 @@ CMP #0
 Decrement:
 BEQ continueTail ; If A is not 0, add a tail piece, otherwise, skip to continueTail
 CLC
-LDA $01
+LDA $01      ; Load the snake's low byte position
 STA ($a), Y  ; Store the current low-byte into the tail memory address
 LDA $a       ; Load the tail length into A
 ADC #1       ; Increment the tail length to set carry bit
 STA $a       ; Store into the tail length
 LDA $b       ; Load the high byte into A
 ADC #0       ; Add the carry bit into the high byte
-STA $b
+STA $b       ; Store into the high byte
 CLC
-LDA $02
+LDA $02      ; Load the snake's high byte position
 STA ($a), Y  ; Store the current high-byte into the tail memory address
 LDA $a       ; Load the tail length into A
 ADC #1       ; Increment the tail length to set carry bit
 STA $a       ; Store into the tail length
 LDA $b       ; Load the high byte into A
 ADC #0       ; Add the carry bit into the high byte
-STA $b 
+STA $b       ; Store into the high byte
 DEX          ; Decrement X by 1
 JMP Decrement
 continueTail:
@@ -261,30 +261,38 @@ RTS
 ;; The more efficient tail update function
 updateTail:
 ;; Load the head position, store in the final tail item
-LDY $c       ; Put the final tail length index into Y
-LDA $1000, Y
-STA $7       ; Load the last tail element into the low tmp byte
+LDY #0
+LDA ($c), Y  ; Load the low byte of the last tail element into A
+STA $7       ; Store the last tail element into the low tmp byte
 INY
-LDA $1000, Y
-STA $8       ; Load the last tail element into the high temp byte
+LDA ($c), Y  ; Load the high byte of the last tail element into A
+STA $8       ; Store the last tail element into the high temp byte
 DEY          ; Set Y back to the proper low-byte index
 LDA #0       ; Load black
 STA ($7, X)  ; Clear the last element in the tail
 LDA $1       ; Load the head low byte
-STA $1000, Y ; Store into the low byte for the "last" tail element (visually last)
+STA ($c), Y ; Store into the low byte for the "last" tail element (visually last)
 STA $7
 INY
 LDA $2       ; Load the head high byte
-STA $1000, Y ; Store into the high byte for the "last" tail element (visually last)
+STA ($c), Y  ; Store into the high byte for the "last" tail element (visually last)
 STA $8
-DEY          ; Decrement Y
-BNE countLoop ; Check if the index is 0, if not, do the loop
+LDA $c       ; Load the low byte of index
+BNE dontContained; Check if the index is 0, if so, do the contained code
 LDA $a       ; If it is, reset it back to the length - 2
-TAY
-countLoop: 
-DEY          ; Decrement Y twice to find the new final element
-DEY
-STY $c
+STA $c
+DEC $d
+LDA $d       ; Now begin checking the high byte
+CMP #$f
+BNE dontContained ; Check if the high byte index is $10, if so, do the contained code
+LDA $b
+STA $d
+LDA $c
+BNE dontContained ; Check if the low byte is 0 again
+DEC $d            ; If so, decrement high byte
+dontContained: 
+DEC $c       ; Decrement Y twice to find the new final element
+DEC $c
 LDY #0
 RTS
 
