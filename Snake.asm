@@ -1,7 +1,5 @@
 ;; 6502 Snake game
 
-Init:
-JMP Start  ; Skip the variables
 ;; Memory addresses
 ;define prevKey   $00 ; previous valid key pressed
 ;define pointerL  $01 ; Low-byte for the snake head's pointer
@@ -178,6 +176,14 @@ STA ($05), Y ; Clear old position
 JMP Loop
 
 gameOver:
+;; Display the tail count in the A and X register
+LDA $a       ; Load the low tail count byte into A
+LSR          ; Divide by 2
+TAX          ; Transfer to X
+LDA $b       ; Load the high tail count byte into A
+SEC
+SBC #$10     ; Subtract $10
+LSR          ; Divide by 2
 BRK
 JMP Start
 
